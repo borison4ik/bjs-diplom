@@ -2,15 +2,8 @@
 
 // logoutButton
 const logoutButton = new LogoutButton();
-
 logoutButton.action = () => {
-  ApiConnector.logout((response) => {
-    if (!response.success) {
-      return false;
-    } else {
-      location.reload();
-    }
-  });
+  ApiConnector.logout((response) => response.success && location.reload());
 };
 
 // current Profile
@@ -18,9 +11,8 @@ ApiConnector.current((response) => ProfileWidget.showProfile(response.data));
 
 // ratesBoard
 const ratesBoard = new RatesBoard();
-const getStocksInterval = 60000;
-
-const getStocks = () => {
+const updateStocksInterval = 60000;
+const updateStocks = () => {
   ApiConnector.getStocks((response) => {
     if (response.success) {
       ratesBoard.clearTable();
@@ -29,75 +21,53 @@ const getStocks = () => {
   });
 };
 
-getStocks();
-setInterval(getStocks, getStocksInterval);
+updateStocks();
+setInterval(updateStocks, updateStocksInterval);
 
 // moneyManager
 const moneyManager = new MoneyManager();
-const mmResponseUpdate = (response) => {
+const mmResponseUpdate = (response, msg) => {
   if (!response.success) {
-    moneyManager.setMessage(false, response.error);
+    moneyManager.setMessage(response.success, response.error);
   } else {
     ProfileWidget.showProfile(response.data);
-    moneyManager.setMessage(true, `Операция прошла успешно`); // почему сервер не врозвращает сообщение от успехе
+    moneyManager.setMessage(response.success, msg);
   }
 };
-
-moneyManager.addMoneyCallback = (data) => {
-  ApiConnector.addMoney(data, mmResponseUpdate);
-};
-
-moneyManager.conversionMoneyCallback = (data) => {
-  ApiConnector.convertMoney(data, mmResponseUpdate);
-};
-
-moneyManager.sendMoneyCallback = (data) => {
-  ApiConnector.transferMoney(data, mmResponseUpdate);
-};
+moneyManager.addMoneyCallback = (data) =>
+  ApiConnector.addMoney(data, (response) =>
+    mmResponseUpdate(response, 'Деньги успешно добавлены!'),
+  );
+moneyManager.conversionMoneyCallback = (data) =>
+  ApiConnector.convertMoney(data, (response) =>
+    mmResponseUpdate(response, 'Деньги успешно конвертированы!'),
+  );
+moneyManager.sendMoneyCallback = (data) =>
+  ApiConnector.transferMoney(data, (response) =>
+    mmResponseUpdate(response, 'Деньги успешно отправлены!'),
+  );
 
 // FavoritesWidget
 const favoritesWidget = new FavoritesWidget();
-const updateFavorites = (response) => {
-  if (!response.success) {
-    favoritesWidget.setMessage(false, response.error);
-  } else {
-    let message;
-    if (favoritesWidget.favoritesTableBody.children.length < Object.keys(response.data).length) {
-      message = 'Пользователь успешно добавлен';
-    } else {
-      message = 'Пользователь успешно Удален';
-    }
-    favoritesWidget.clearTable();
-    favoritesWidget.fillTable(response.data);
-    moneyManager.updateUsersList(response.data);
-    favoritesWidget.setMessage(true, message); // тоже самое почему сервер не врозвращает сообщение от успехе
-  }
-};
-
-ApiConnector.getFavorites((response) => {
-  // Пришлось написать отдельную функцию иначе setMessage из updateFavorites
-  // выскакивает при первом обновлении страницы
+const updateFavorites = (response, msg) => {
   if (!response.success) {
     favoritesWidget.setMessage(false, response.error);
   } else {
     favoritesWidget.clearTable();
     favoritesWidget.fillTable(response.data);
     moneyManager.updateUsersList(response.data);
-  }
-});
-
-favoritesWidget.addUserCallback = (user) => {
-  try {
-    ApiConnector.addUserToFavorites(user, updateFavorites);
-  } catch (err) {
-    console.error(err.message);
+    favoritesWidget.setMessage(true, msg);
   }
 };
 
-favoritesWidget.removeUserCallback = (userId) => {
-  try {
-    ApiConnector.removeUserFromFavorites(userId, updateFavorites);
-  } catch (err) {
-    console.error(err.message);
-  }
-};
+ApiConnector.getFavorites((response) => updateFavorites(response));
+
+favoritesWidget.addUserCallback = (user) =>
+  ApiConnector.addUserToFavorites(user, (response) =>
+    updateFavorites(response, 'Пользователь успешно добавлен!'),
+  );
+
+favoritesWidget.removeUserCallback = (userId) =>
+  ApiConnector.removeUserFromFavorites(userId, (response) =>
+    updateFavorites(response, 'Пользователь успешно удален!'),
+  );
