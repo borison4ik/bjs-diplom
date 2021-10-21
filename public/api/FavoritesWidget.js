@@ -8,11 +8,10 @@ class FavoritesWidget {
     this.addUserCallback = (f) => f;
     this.removeUserCallback = (f) => f;
 
-    this.addUserToFavoritesForm.querySelector('.button')
-      .addEventListener('click', () => {
-        this.addUserCallback(this.getData());
-        this.addUserToFavoritesForm.reset();
-      });
+    this.addUserToFavoritesForm.querySelector('.button').addEventListener('click', () => {
+      this.addUserCallback(this.getData());
+      this.addUserToFavoritesForm.reset();
+    });
 
     this.favoritesTableBody.addEventListener('click', (event) => {
       if (event.target.closest('button')) {
@@ -56,7 +55,9 @@ class FavoritesWidget {
     }
 
     this.favoritesMessageBox.innerText = message;
-    this.favoritesMessageBox.style.display = 'block';
-    setTimeout(() => { this.favoritesMessageBox.style.display = 'none'; }, 5000);
+    this.favoritesMessageBox.style.display = message ? 'block' : 'none';
+    setTimeout(() => {
+      this.favoritesMessageBox.style.display = 'none';
+    }, 5000);
   }
 }
